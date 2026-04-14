@@ -2,10 +2,48 @@ const Listing = require("../models/listing");
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mapToken = process.env.MAP_TOKEN;
 const geocodingClient = mbxGeocoding({accessToken: mapToken});
+const filterPatterns = {
+    trending: null,
+    rooms: /room|hotel|apartment|penthouse|loft|villa|bungalow/i,
+    "iconic-cities": /new york city|amsterdam|miami|dubai|los angeles|boston|florence/i,
+    mountains: /mountain|ski|chalet|banff|aspen|alps|cabin|retreat/i,
+    castles: /castle|palace|fort|historic villa/i,
+    pools: /pool|infinity pool|swimming/i,
+    camping: /camp|treehouse|cabin|lake|outdoor|forest/i,
+    farms: /farm|cottage|cotswolds|countryside|rustic/i,
+    arctic: /arctic|snow|ice|ski|winter/i,
+    domes: /dome|igloo/i,
+    boats: /boat|ship|canal|island/i,
+};
 
 module.exports.index = async (req,res) => {
-    const allListings = await Listing.find({});
-    res.render("listings/index.ejs", {allListings});
+    const searchQuery = req.query.search?.trim() || "";
+    const activeCategory = req.query.category || "";
+    const queryConditions = [];
+
+    if(searchQuery){
+        const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        queryConditions.push({
+            title: { $regex: escapedQuery, $options: "i" },
+        });
+    }
+
+    const categoryPattern = filterPatterns[activeCategory];
+    if(categoryPattern){
+        queryConditions.push({
+            $or: [
+                { title: categoryPattern },
+                { description: categoryPattern },
+                { location: categoryPattern },
+                { country: categoryPattern },
+            ],
+        });
+    }
+
+    const query = queryConditions.length > 0 ? { $and: queryConditions } : {};
+
+    const allListings = await Listing.find(query);
+    res.render("listings/index.ejs", {allListings, searchQuery, activeCategory});
 };
 
 module.exports.renderNewForm = (req, res) => {

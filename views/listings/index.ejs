@@ -15,6 +15,13 @@
             opacity: 1;
             cursor: pointer;
         }
+        .filter.active{
+            opacity: 1;
+        }
+        .filter-link{
+            text-decoration: none;
+            color: inherit;
+        }
         .filter p {
             font-size: 0.8rem;
         }
@@ -31,51 +38,34 @@
             align-items: center;
         }
     </style>
+    <% const filters = [
+        { key: "trending", icon: "fa-solid fa-fire", label: "Trending" },
+        { key: "rooms", icon: "fa-solid fa-bed", label: "Room" },
+        { key: "iconic-cities", icon: "fa-solid fa-mountain-city", label: "Iconic Cities" },
+        { key: "mountains", icon: "fa-solid fa-mountain", label: "Mountains" },
+        { key: "castles", icon: "fa-brands fa-fort-awesome", label: "Castles" },
+        { key: "pools", icon: "fa-solid fa-person-swimming", label: "Amazing Pools" },
+        { key: "camping", icon: "fa-solid fa-campground", label: "Camping" },
+        { key: "farms", icon: "fa-solid fa-cow", label: "Farms" },
+        { key: "arctic", icon: "fa-solid fa-snowflake", label: "Arctic" },
+        { key: "domes", icon: "fa-solid fa-igloo", label: "Domes" },
+        { key: "boats", icon: "fa-solid fa-ship", label: "Boats" }
+    ]; %>
     <div id="filters">
-        <div class="filter">
-            <div><i class="fa-solid fa-fire"></i></div>
-            <p>Trending</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-bed"></i></div>
-            <p>Room</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-mountain-city"></i></div>
-            <p>Iconic Cities</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-mountain"></i></div>
-            <p>Mountains</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-brands fa-fort-awesome"></i></i></div>
-            <p>Castles</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-person-swimming"></i></div>
-            <p>Amazing Pools</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-campground"></i></div>
-            <p>Camping</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-cow"></i></i></div>
-            <p>Farms</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-snowflake"></i></div>
-            <p>Arctic</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-igloo"></i></i></div>
-            <p>Domes</p>
-        </div>
-        <div class="filter">
-            <div><i class="fa-solid fa-ship"></i></div>
-            <p>Boats</p>
-        </div>
+        <% for(let filter of filters) { %>
+            <a 
+                href="/listings?<%= new URLSearchParams({
+                    ...(searchQuery ? { search: searchQuery } : {}),
+                    ...(filter.key !== 'trending' ? { category: filter.key } : {})
+                }).toString() %>" 
+                class="filter-link"
+            >
+                <div class="filter <%= (activeCategory === filter.key || (!activeCategory && filter.key === 'trending')) ? 'active' : '' %>">
+                    <div><i class="<%= filter.icon %>"></i></div>
+                    <p><%= filter.label %></p>
+                </div>
+            </a>
+        <% } %>
         <div class="tax-toggle">
             <div class="form-check-reverse form-switch">
             <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
@@ -83,6 +73,23 @@
             </div>
         </div>
     </div>
+    <% if(activeCategory) { %>
+        <p class="mt-3 mb-0">
+            Filter applied: <b><%= filters.find((filter) => filter.key === activeCategory)?.label || activeCategory %></b>
+        </p>
+    <% } %>
+    <% if(searchQuery) { %>
+        <p class="mt-3 mb-0">
+            Search results for <b>"<%= searchQuery %>"</b>
+        </p>
+    <% } %>
+
+    <% if(allListings.length === 0) { %>
+        <div class="alert alert-secondary mt-3" role="alert">
+            No listings found<% if(searchQuery) { %> for "<%= searchQuery %>"<% } %>.
+        </div>
+    <% } %>
+
     <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 mt-3">
         <% for(let listing of allListings){ %>
         <a href="/listings/<%= listing._id %>" class="listing-link">
@@ -96,8 +103,13 @@
             <div class="card-body">
                 <p class="card-text">
                     <b><%= listing.title %> <br></b>
-                    &#8377; <%= listing.price.toLocaleString("en-IN") %> / night
-                    <i class="tax-info">&nbsp; &nbsp;+18% GST</i>
+                    <span 
+                        class="listing-price" 
+                        data-base-price="<%= listing.price %>"
+                    >
+                        &#8377; <%= listing.price.toLocaleString("en-IN") %>
+                    </span> / night
+                    <i class="tax-info">&nbsp; &nbsp;+18% GST included</i>
                 </p>
             </div>
         </div>
@@ -109,6 +121,8 @@
         let taxSwitch = document.getElementById("flexSwitchCheckDefault");
         taxSwitch.addEventListener("click", ()=> {
             let taxInfo = document.getElementsByClassName("tax-info");
+            let listingPrices = document.getElementsByClassName("listing-price");
+
             for(info of taxInfo){
                 if(info.style.display != "inline"){
                     info.style.display = "inline";
@@ -116,7 +130,14 @@
                     info.style.display = "none";
                 } 
             }
+
+            for(let priceElement of listingPrices){
+                let basePrice = Number(priceElement.dataset.basePrice);
+                let finalPrice = taxSwitch.checked 
+                    ? Math.round(basePrice * 1.18)
+                    : basePrice;
+
+                priceElement.innerHTML = `&#8377; ${finalPrice.toLocaleString("en-IN")}`;
+            }
         });
     </script>
-
-
