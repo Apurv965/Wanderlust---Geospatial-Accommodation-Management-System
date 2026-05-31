@@ -55,7 +55,7 @@ app.js        – Main application file
 ## 🚀 Getting Started (Local Setup)
 
 1. Clone the repository
-git clone https://github.com/your-username/wanderlust.git
+git clone https://github.com/Apurv965/wanderlust.git
 cd wanderlust
 
 2. Install dependencies
